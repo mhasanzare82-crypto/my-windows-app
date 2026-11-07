@@ -1,0 +1,27 @@
+{
+  "name": "daftarche-yaddasht",
+  "version": "1.0.0",
+  "description": "دفتر یادداشت",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.myapp.daftarcheyaddasht",
+    "productName": "دفتر یادداشت",
+    "asar": true,
+    "files": [
+      "index.html",
+      "main.js"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    }
+  }
+}
