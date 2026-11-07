@@ -1,0 +1,2027 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>دفتر یادداشت</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    font-family: Tahoma, Arial;
+    background: #eef1f5;
+    color: #263244;
+}
+
+button, input, select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+    border: 0;
+    border-radius: 7px;
+    padding: 7px 10px;
+    background: #edf0f5;
+    color: #263244;
+}
+
+button:hover {
+    filter: brightness(.96);
+}
+
+/* کل برنامه */
+.app {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+
+/* حالت تمام‌صفحه محیط نوشتن */
+.app.writing-fullscreen header,
+.app.writing-fullscreen .sidebar,
+.app.writing-fullscreen .top-area {
+    display: none;
+}
+
+.app.writing-fullscreen .paper-area {
+    position: relative;
+    padding: 8px;
+}
+
+.fullscreen-exit {
+    display: none;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10000;
+    background: #263244;
+    color: white;
+    box-shadow: 0 2px 10px #0003;
+}
+
+.app.writing-fullscreen .fullscreen-exit {
+    display: block;
+}
+
+/* سربرگ */
+header {
+    height: 48px;
+    min-height: 48px;
+    background: white;
+    border-bottom: 1px solid #e0e5ec;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    flex-shrink: 0;
+}
+
+header h3 {
+    font-size: 14px;
+    margin: 0;
+}
+
+.primary {
+    background: #3769d6;
+    color: white;
+}
+
+/* چیدمان اصلی */
+.layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* فضای اصلی نوشتن */
+main {
+    order: 1;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* مدیریت موضوعات - سمت راست */
+.sidebar {
+    order: 0;
+    width: 235px;
+    min-width: 190px;
+    flex-shrink: 0;
+    background: white;
+    border-left: 1px solid #dfe4eb;
+    padding: 12px;
+    overflow: auto;
+    transition: width .2s, padding .2s;
+}
+
+.sidebar.closed {
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+}
+
+.sidebar h3 {
+    font-size: 14px;
+    margin: 4px 0 12px;
+}
+
+.sidebar input {
+    width: 100%;
+    padding: 9px;
+    border: 1px solid #dce1e8;
+    border-radius: 7px;
+    margin-bottom: 7px;
+}
+
+.sidebar .add {
+    width: 100%;
+    background: #3769d6;
+    color: white;
+}
+
+.topic {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 5px 0;
+    background: #f4f6fa;
+    border: 1px solid transparent;
+    width: 100%;
+    text-align: right;
+    padding: 8px;
+}
+
+.topic.active {
+    background: #e5edff;
+    border-color: #b8ceff;
+    color: #2456bd;
+}
+
+.topic-name {
+    flex: 1;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pin {
+    padding: 4px;
+    background: transparent;
+    font-size: 15px;
+}
+
+.pin.pinned {
+    color: #d69a16;
+}
+
+/* نوار بالای صفحه */
+.top-area {
+    background: white;
+    border-bottom: 1px solid #e0e5ec;
+    padding: 5px 12px;
+    flex-shrink: 0;
+}
+
+.strip-label {
+    font-size: 10px;
+    color: #7c8796;
+    margin: 0 0 4px;
+}
+
+.tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 2px 0 5px;
+    min-height: 32px;
+    scrollbar-width: thin;
+}
+
+.tab {
+    white-space: nowrap;
+    background: #f0f2f6;
+    border: 1px solid #e0e5ec;
+    font-size: 11px;
+    padding: 6px 11px;
+}
+
+.tab.active {
+    background: #e5edff;
+    border-color: #91b2f4;
+    color: #2456bd;
+}
+
+.tab.new {
+    background: #3769d6;
+    color: white;
+    border-color: #3769d6;
+}
+
+/* فضای کاغذ */
+.paper-area {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+    background: #e7ebf1;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+#topicCanvas {
+    width: 100%;
+    height: 180px;
+    display: block;
+    background: #fff;
+    border: 1px solid #cfd7e3;
+    border-radius: 7px;
+    touch-action: none;
+    cursor: crosshair;
+}
+
+.topic-handwriting {
+    display: block;
+    max-width: 100%;
+    max-height: 34px;
+    object-fit: contain;
+}
+
+.topic-tab-handwriting {
+    display: inline-block;
+    max-width: 110px;
+    max-height: 24px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.paper {
+    background: white;
+    box-shadow: 0 2px 12px #00000018;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+    touch-action: none;
+    cursor: crosshair;
+}
+
+/* نوار ابزار یکپارچه پایین */
+.toolbar {
+    background: white;
+    border-top: 1px solid #dfe4eb;
+    padding: 6px 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.toolbar select,
+.toolbar input[type=number] {
+    padding: 6px;
+    border: 1px solid #dce1e8;
+    border-radius: 7px;
+    background: white;
+    font-size: 11px;
+    height: 31px;
+}
+
+.toolbar input[type=color] {
+    width: 31px;
+    height: 31px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    flex-shrink: 0;
+}
+
+.toolbar input[type=range] {
+    width: 65px;
+    cursor: pointer;
+}
+.oblique-angle-control {
+    display:none;
+    align-items:center;
+    gap:5px;
+    white-space:nowrap;
+}
+.oblique-angle-control.visible { display:flex; }
+.oblique-angle-control input[type=range] { width:82px; }
+
+.tool {
+    font-size: 11px;
+    border: 1px solid #e0e5ec;
+    padding: 7px 9px;
+    white-space: nowrap;
+}
+
+.tool.active {
+    background: #e5edff;
+    border-color: #91b2f4;
+    color: #2456bd;
+}
+
+.sep {
+    height: 25px;
+    border-right: 1px solid #e0e5ec;
+    flex-shrink: 0;
+}
+
+.small {
+    font-size: 10px;
+    color: #788394;
+    white-space: nowrap;
+}
+
+.sizebox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.sizebox input {
+    width: 48px;
+}
+
+.status {
+    font-size: 10px;
+    color: #718096;
+    white-space: nowrap;
+}
+
+/* صفحه‌های کوچک */
+@media(max-width:760px) {
+    header {
+        padding: 0 6px;
+        height: 43px;
+        min-height: 43px;
+    }
+
+    header h3 {
+        font-size: 12px;
+    }
+
+    .sidebar {
+        width: 200px;
+        min-width: 180px;
+    }
+
+    .sidebar.closed {
+        width: 0;
+        min-width: 0;
+    }
+
+    .top-area {
+        padding: 4px 7px;
+    }
+
+    .paper-area {
+        padding: 3px;
+    }
+
+    .toolbar {
+        justify-content: flex-start;
+        gap: 5px;
+        padding: 5px;
+    }
+
+    .toolbar input[type=range] {
+        width: 48px;
+    }
+
+    .tool {
+        padding: 6px;
+    }
+}
+
+@media(max-width:420px) {
+    .sidebar {
+        width: 165px;
+        min-width: 155px;
+    }
+
+    header h3 {
+        font-size: 11px;
+    }
+
+    header {
+        gap: 5px;
+    }
+}
+
+/* پنل سمت راست برای موضوعات منتخب و صفحات همان موضوع */
+.app.writing-fullscreen .top-area {
+    display:flex;
+    flex-direction:column;
+    position:fixed;
+    top:10px;
+    right:10px;
+    left:auto;
+    transform:none;
+    z-index:10025;
+    width:218px;
+    max-width:calc(100vw - 20px);
+    max-height:calc(100dvh - 20px);
+    padding:10px;
+    gap:7px;
+    overflow-y:auto;
+    overflow-x:hidden;
+    background:#fff;
+    border:1px solid #dfe4eb;
+    border-radius:12px;
+    box-shadow:0 2px 12px #0002;
+}
+.app.writing-fullscreen .top-area > .strip-label:first-child { display:block; }
+.app.writing-fullscreen .top-area #pinnedTabs {
+    display:flex;
+    flex-direction:column;
+    flex-wrap:nowrap;
+    gap:5px;
+    padding:0;
+    min-height:0;
+    overflow:visible;
+}
+.app.writing-fullscreen .top-area #pinnedTabs .tab {
+    display:block;
+    width:100%;
+    max-width:none;
+    min-height:34px;
+    text-align:right;
+    white-space:normal;
+}
+.app.writing-fullscreen .top-area #newPage {
+    display:block !important;
+    width:100%;
+    min-height:38px;
+    background:#3769d6;
+    color:#fff;
+}
+.app.writing-fullscreen .top-area #pageTabs {
+    display:flex !important;
+    flex-direction:column;
+    flex-wrap:nowrap;
+    gap:5px;
+    padding:0;
+    overflow:visible;
+}
+.app.writing-fullscreen .top-area #pageTabs .tab {
+    width:100%;
+    text-align:right;
+    white-space:normal;
+}
+.app.writing-fullscreen .top-area > .strip-label:nth-of-type(2) { display:block; }
+.app.writing-fullscreen .floating-controls { right:240px; left:auto; transform:none; max-width:calc(100vw - 500px); }
+.app.writing-fullscreen .quick-palette { left:10px; }
+@media(max-width:700px) {
+    .app.writing-fullscreen .top-area {
+        top:10px;right:8px;width:155px;max-height:calc(100dvh - 20px);
+    }
+    .app.writing-fullscreen .floating-controls {
+        top:auto;bottom:10px;right:8px;left:8px;max-width:none;
+        justify-content:center;transform:none;
+    }
+    .app.writing-fullscreen .quick-palette {
+        top:10px;left:8px;width:125px;max-height:calc(100dvh - 100px);
+    }
+}
+/* ابزارهای شناور و قابل جابه‌جایی در حالت تمام‌صفحه */
+.floating-controls { display:none; }
+.app.writing-fullscreen .floating-controls {
+    display:flex;
+    position:fixed;
+    top:10px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:10030;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:6px;
+    max-width:calc(100vw - 300px);
+    padding:8px;
+    background:#fff;
+    border:1px solid #dfe4eb;
+    border-radius:12px;
+    box-shadow:0 3px 14px #0003;
+    touch-action:none;
+}
+.floating-controls .drag-handle {
+    padding:5px 8px;
+    border-radius:7px;
+    background:#edf0f5;
+    color:#687487;
+    cursor:grab;
+    user-select:none;
+    touch-action:none;
+    font-size:16px;
+}
+.floating-controls button, .floating-controls select { min-height:34px; }
+.floating-controls #newPage { background:#3769d6;color:#fff; }
+.floating-controls #tool { max-width:145px; }
+.floating-controls #color { width:36px;height:34px;padding:0;border:0;background:transparent; }
+.floating-controls #undo, .floating-controls #clear { white-space:nowrap; }
+.app.writing-fullscreen header { display:none !important; }
+.app.writing-fullscreen .toolbar { display:none !important; }
+.app.writing-fullscreen .sidebar { display:none !important; }
+.app.writing-fullscreen .top-area {
+    display:block;
+    position:fixed;
+    top:62px;
+    left:50%;
+    right:auto;
+    transform:translateX(-50%);
+    z-index:10020;
+    width:auto;
+    max-width:calc(100vw - 300px);
+    max-height:70px;
+    padding:5px 9px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    border:1px solid #dfe4eb;
+    border-radius:10px;
+    box-shadow:0 2px 10px #0002;
+}
+.app.writing-fullscreen .top-area > .strip-label:nth-of-type(2),
+.app.writing-fullscreen .top-area #pageTabs { display:none !important; }
+.app.writing-fullscreen .top-area > .strip-label:first-child { display:none; }
+.app.writing-fullscreen .top-area #pinnedTabs {
+    display:flex;
+    flex-wrap:nowrap;
+    gap:6px;
+    min-height:0;
+    padding:0;
+    overflow:visible;
+}
+.app.writing-fullscreen .top-area .tab {
+    min-width:65px;
+    max-width:150px;
+    padding:7px 11px;
+    border-radius:8px;
+    font-size:12px;
+}
+.app.writing-fullscreen .fullscreen-exit {
+    top:10px;left:10px;right:auto;
+}
+@media(max-width:700px) {
+    .app.writing-fullscreen .floating-controls {
+        top:auto;bottom:10px;left:50%;max-width:calc(100vw - 18px);
+        justify-content:center;transform:translateX(-50%);
+    }
+    .app.writing-fullscreen .top-area {
+        top:58px;max-width:calc(100vw - 18px);
+    }
+    .app.writing-fullscreen .quick-palette {
+        top:115px;left:8px;width:130px;max-height:calc(100dvh - 180px);
+    }
+}
+
+/* پنل رنگ‌های محبوب و نمونه قلم‌ها در سمت چپ تمام‌صفحه */
+.quick-palette {
+    display: none;
+}
+.app.writing-fullscreen .quick-palette {
+    display: block;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 10015;
+    width: 178px;
+    max-height: calc(100dvh - 20px);
+    overflow-y: auto;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #dfe4eb;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px #0002;
+}
+.quick-palette-title {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #455268;
+}
+.favorite-colors {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 9px;
+}
+.favorite-color {
+    width: 25px;
+    height: 25px;
+    min-width: 0;
+    padding: 0;
+    border: 2px solid #e1e5eb;
+    border-radius: 50%;
+}
+.favorite-color.selected {
+    outline: 2px solid #3769d6;
+    outline-offset: 2px;
+}
+.palette-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 12px;
+}
+.palette-actions input[type=color] {
+    width: 30px;
+    height: 29px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+.palette-actions button {
+    flex: 1;
+    font-size: 10px;
+    padding: 6px 4px;
+}
+.palette-size-title { margin-top: 12px; }
+.palette-size-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 9px;
+}
+.palette-size-control input {
+    width: 100%;
+    min-width: 0;
+    accent-color: #3769d6;
+}
+.palette-size-control output {
+    min-width: 25px;
+    color: #455268;
+    font-size: 11px;
+    text-align: center;
+}
+.palette-undo {
+    width: 100%;
+    padding: 8px;
+    background: #edf2ff;
+    border: 1px solid #cbd8f5;
+    color: #2456bd;
+    font-size: 11px;
+}
+.palette-save-image {
+    width: 100%;
+    margin-top: 7px;
+    padding: 8px;
+    border: 1px solid #b8dfcb;
+    border-radius: 7px;
+    background: #edf8f1;
+    color: #17643b;
+    font-size: 11px;
+    cursor: pointer;
+}
+.pen-samples {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.pen-sample {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    padding: 6px 7px;
+    border: 1px solid #e3e7ed;
+    background: #f8f9fb;
+    text-align: right;
+}
+.pen-sample.selected {
+    background: #e8efff;
+    border-color: #91b2f4;
+    color: #2456bd;
+}
+.pen-sample-name {
+    width: 62px;
+    flex-shrink: 0;
+    font-size: 10px;
+}
+.pen-sample-line {
+    display: block;
+    flex: 1;
+    height: 12px;
+    border-bottom: 3px solid currentColor;
+    border-radius: 50%;
+}
+.pen-sample svg {
+    width: 78px;
+    height: 30px;
+    flex: 1;
+    overflow: visible;
+}
+.pen-sample svg path {
+    fill: none;
+    stroke: var(--sample-color, currentColor);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.pen-sample[data-tool="ballpoint"] svg path { stroke-width: 1.5; }
+.pen-sample[data-tool="fine"] svg path { stroke-width: 1; }
+.pen-sample[data-tool="fountain"] svg path { stroke-width: 3.2; }
+.pen-sample[data-tool="pencil"] svg path { stroke-width: 1.8; stroke-dasharray: 2 1.5; opacity: .65; }
+.pen-sample[data-tool="brush"] svg path { stroke-width: 5.5; }
+.pen-sample[data-tool="marker"] svg path { stroke-width: 7; stroke-linecap: square; opacity: .72; }
+.pen-sample[data-tool="highlighter"] svg path { stroke-width: 9; stroke-linecap: square; opacity: .28; }
+.pen-sample[data-tool="calligraphy"] svg path { stroke-width: 4.5; stroke-linecap: square; }
+.pen-sample[data-tool="pencil"] .pen-sample-line { opacity: .45; border-bottom-style: dashed; }
+.pen-sample[data-tool="brush"] .pen-sample-line { border-bottom-width: 6px; }
+.pen-sample[data-tool="marker"] .pen-sample-line { border-bottom-width: 8px; opacity: .65; }
+.pen-sample[data-tool="highlighter"] .pen-sample-line { border-bottom-width: 9px; opacity: .3; }
+.pen-sample[data-tool="fountain"] .pen-sample-line { border-bottom-width: 4px; }
+.pen-sample[data-tool="calligraphy"] .pen-sample-line { border-bottom-width: 5px; transform: skewX(-25deg); }
+.pen-sample[data-tool="oblique"] svg path { stroke-width: 5; stroke-linecap: butt; }
+.pen-sample[data-tool="oblique"] .pen-sample-line { border-bottom-width: 6px; transform: skewX(-35deg); }
+@media(max-width:600px) {
+    .app.writing-fullscreen .quick-palette {
+        width: 142px;
+        padding: 7px;
+    }
+    .pen-sample-name { width: 52px; }
+    .favorite-colors { grid-template-columns: repeat(4, 1fr); }
+}
+
+
+/* پنل سمت راست برای موضوعات منتخب و صفحات همان موضوع */
+.app.writing-fullscreen .top-area {
+    display:flex;
+    flex-direction:column;
+    position:fixed;
+    top:10px;
+    right:10px;
+    left:auto;
+    transform:none;
+    z-index:10025;
+    width:218px;
+    max-width:calc(100vw - 20px);
+    max-height:calc(100dvh - 20px);
+    padding:10px;
+    gap:7px;
+    overflow-y:auto;
+    overflow-x:hidden;
+    background:#fff;
+    border:1px solid #dfe4eb;
+    border-radius:12px;
+    box-shadow:0 2px 12px #0002;
+}
+.app.writing-fullscreen .top-area > .strip-label:first-child { display:block; }
+.app.writing-fullscreen .top-area #pinnedTabs {
+    display:flex;
+    flex-direction:column;
+    flex-wrap:nowrap;
+    gap:5px;
+    padding:0;
+    min-height:0;
+    overflow:visible;
+}
+.app.writing-fullscreen .top-area #pinnedTabs .tab {
+    display:block;
+    width:100%;
+    max-width:none;
+    min-height:34px;
+    text-align:right;
+    white-space:normal;
+}
+.app.writing-fullscreen .top-area #newPage {
+    display:block !important;
+    width:100%;
+    min-height:38px;
+    background:#3769d6;
+    color:#fff;
+}
+.app.writing-fullscreen .top-area #pageTabs {
+    display:flex !important;
+    flex-direction:column;
+    flex-wrap:nowrap;
+    gap:5px;
+    padding:0;
+    overflow:visible;
+}
+.app.writing-fullscreen .top-area #pageTabs .tab {
+    width:100%;
+    text-align:right;
+    white-space:normal;
+}
+.app.writing-fullscreen .top-area > .strip-label:nth-of-type(2) { display:block; }
+.app.writing-fullscreen .floating-controls { right:240px; left:auto; transform:none; max-width:calc(100vw - 500px); }
+.app.writing-fullscreen .quick-palette { left:10px; }
+@media(max-width:700px) {
+    .app.writing-fullscreen .top-area {
+        top:10px;right:8px;width:155px;max-height:calc(100dvh - 20px);
+    }
+    .app.writing-fullscreen .floating-controls {
+        top:auto;bottom:10px;right:8px;left:8px;max-width:none;
+        justify-content:center;transform:none;
+    }
+    .app.writing-fullscreen .quick-palette {
+        top:10px;left:8px;width:125px;max-height:calc(100dvh - 100px);
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<aside class="quick-palette" id="quickPalette" aria-label="رنگ‌های محبوب و نمونه قلم‌ها">
+    <div class="quick-palette-title">🎨 رنگ‌های مورد علاقه</div>
+    <div class="favorite-colors" id="favoriteColors"></div>
+    <div class="palette-actions">
+        <input type="color" id="favoriteColorPicker" value="#20242c" title="انتخاب رنگ دلخواه">
+        <button type="button" id="addFavoriteColor">＋ افزودن رنگ</button>
+    </div>
+    <div class="quick-palette-title">✍️ نمونه قلم‌ها</div>
+    <div class="pen-samples" id="penSamples"></div>
+    <div class="quick-palette-title palette-size-title">📏 اندازه قلم</div>
+    <div class="palette-size-control">
+        <input type="range" id="paletteThickness" min="1" max="100" value="20" aria-label="اندازه قلم">
+        <output id="paletteThicknessValue">20</output>
+    </div>
+    <button type="button" class="palette-undo" id="paletteUndo">↶ بازگشت آخرین حرکت</button>
+    <button type="button" class="palette-save-image" id="savePageImage">⬇ ذخیره صفحه به‌صورت عکس</button>
+</aside>
+
+
+<header>
+    <button id="toggle">☰</button>
+    <h3>📓 دفتر یادداشت</h3>
+    <span class="small" id="activeName"></span>
+    <span style="flex:1"></span>
+    <button class="tool" id="fullscreenToggle" title="نمایش تمام‌صفحه">⛶ تمام‌صفحه</button>
+    <button class="primary" id="newPage">＋ صفحه جدید</button>
+    <button class="tool" id="saveTopic">⬇ ذخیره موضوع و صفحات</button>
+</header>
+
+<div class="layout">
+
+    <main>
+
+        <!-- نوار موضوعات پین شده و صفحات -->
+        <div class="top-area">
+
+            <div class="strip-label">⭐ موضوعات پین‌شده</div>
+            <div class="tabs" id="pinnedTabs"></div>
+
+            <div class="strip-label">صفحه‌های موضوع انتخاب‌شده</div>
+            <div class="tabs" id="pageTabs"></div>
+
+        </div>
+
+        <!-- محیط نوشتن -->
+        <div class="paper-area" id="paperArea">
+            <button class="fullscreen-exit" id="fullscreenExit">✕ خروج از تمام‌صفحه</button>
+            <div class="paper" id="paper">
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- تمام ابزارها در یک نوار پایین -->
+        <div class="toolbar">
+
+            <select id="tool" title="نوع قلم">
+                <option value="ballpoint">خودکار</option>
+                <option value="fine" selected>روان‌نویس</option>
+                <option value="fountain">خودنویس</option>
+                <option value="pencil">مداد</option>
+                <option value="brush">قلم‌مویی</option>
+                <option value="marker">ماژیک</option>
+                <option value="highlighter">هایلایتر</option>
+                <option value="calligraphy">خوشنویسی</option>
+                <option value="nastaliq">نستعلیق‌نما</option>
+                <option value="tahriri">تحریری</option>
+                <option value="titr">قلم تیتر</option>
+                <option value="oblique">قلم سرکج</option>
+                <option value="eraser">پاک‌کن</option>
+            </select>
+
+            <label class="oblique-angle-control" id="obliqueAngleControl" title="زاویه پایه نوک قلم سرکج">
+                <span class="small">زاویه نوک</span>
+                <input type="range" id="obliqueAngle" min="0" max="180" value="90">
+                <span class="small" id="obliqueAngleValue">۹۰°</span>
+            </label>
+
+            <input type="color" id="color"
+                   value="#20242c" title="انتخاب رنگ">
+
+            <span class="small">ضخامت</span>
+            <input type="range" id="thickness"
+                   min="1" max="100" value="20">
+
+            <span id="thicknessValue" class="small">20</span>
+
+            <span class="sep"></span>
+
+            <span class="small">کاغذ</span>
+
+            <div class="sizebox">
+                <span>عرض</span>
+                <input type="number" id="paperWidth"
+                       min="5" max="100" value="21">
+
+                <span>ارتفاع</span>
+                <input type="number" id="paperHeight"
+                       min="5" max="150" value="29.7">
+
+                <button id="applySize">اعمال</button>
+            </div>
+
+            <span class="sep"></span>
+
+            <span class="small">بزرگ‌نمایی</span>
+            <button class="tool" id="zoomOut" title="کوچک‌نمایی">−</button>
+            <span class="status" id="zoomValue">100٪</span>
+            <button class="tool" id="zoomIn" title="بزرگ‌نمایی">＋</button>
+            <button class="tool" id="zoomFit">متناسب</button>
+
+            <span class="sep"></span>
+
+            <button class="tool" id="undo">↶ بازگشت</button>
+            <button class="tool" id="clear">پاک کردن</button>
+
+            <span class="status" id="status">ذخیره خودکار فعال است</span>
+
+        </div>
+
+    </main>
+
+    <!-- مدیریت موضوعات در سمت راست -->
+    <aside class="sidebar" id="sidebar">
+
+        <h3>📁 مدیریت موضوعات</h3>
+
+        <p class="small">نام موضوع را تایپ کنید.</p>
+        <input type="text" id="topicNameInput" maxlength="100"
+               placeholder="نام موضوع" autocomplete="off">
+        <button class="add" id="addTopic">＋ ایجاد موضوع</button>
+
+        <p class="small">
+            برای نمایش موضوع در بالای صفحه، روی ⭐ کنار آن بزن.
+        </p>
+
+        <div id="topics"></div>
+
+    </aside>
+
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* رنگ‌های محبوب و انتخاب سریع نمونه قلم با لمس یا قلم نوری */
+const FAVORITE_COLORS_KEY = 'notebook_favorite_colors_v1';
+const defaultFavoriteColors = [
+    '#20242c', '#e53935', '#1e88e5', '#43a047',
+    '#8e24aa', '#fb8c00', '#00897b', '#5e35b1',
+    '#ec407a', '#795548'
+];
+let favoriteColors;
+try {
+    favoriteColors = JSON.parse(localStorage.getItem(FAVORITE_COLORS_KEY) || 'null');
+} catch(error) {
+    favoriteColors = null;
+}
+if(!Array.isArray(favoriteColors) || !favoriteColors.length) {
+    favoriteColors = [...defaultFavoriteColors];
+}
+const penSampleOptions = [
+    {value:'ballpoint', label:'خودکار'},
+    {value:'fine', label:'روان‌نویس'},
+    {value:'fountain', label:'خودنویس'},
+    {value:'pencil', label:'مداد'},
+    {value:'brush', label:'قلم‌مویی'},
+    {value:'marker', label:'ماژیک'},
+    {value:'highlighter', label:'هایلایتر'},
+    {value:'calligraphy', label:'خوشنویسی'},
+    {value:'nastaliq', label:'نستعلیق‌نما'},
+    {value:'tahriri', label:'تحریری'},
+    {value:'titr', label:'قلم تیتر'},
+    {value:'oblique', label:'قلم سرکج'},
+    {value:'eraser', label:'پاک‌کن'}
+];
+function saveFavoriteColors() {
+    try { localStorage.setItem(FAVORITE_COLORS_KEY, JSON.stringify(favoriteColors)); } catch(error) {}
+}
+function renderFavoriteColors() {
+    const container = $('favoriteColors');
+    if(!container) return;
+    container.innerHTML = '';
+    favoriteColors.forEach(color => {
+        const swatch = document.createElement('button');
+        swatch.type = 'button';
+        swatch.className = 'favorite-color' + ($('color').value.toLowerCase() === color.toLowerCase() ? ' selected' : '');
+        swatch.style.background = color;
+        swatch.title = color;
+        swatch.setAttribute('aria-label', 'انتخاب رنگ ' + color);
+        swatch.addEventListener('click', () => {
+            $('color').value = color;
+            renderFavoriteColors();
+        });
+        container.appendChild(swatch);
+    });
+}
+function renderPenSamples() {
+    const container = $('penSamples');
+    if(!container) return;
+    const shapes = {
+        ballpoint:'M4 20 C15 4 24 28 36 13 S57 7 70 18',
+        fine:'M4 18 Q18 7 30 18 T70 18',
+        fountain:'M4 20 C18 2 26 30 40 14 S58 8 70 17',
+        pencil:'M4 18 L14 13 L24 20 L34 10 L44 18 L56 9 L70 16',
+        brush:'M4 21 Q18 2 31 18 T70 12',
+        marker:'M4 18 Q20 5 34 17 T70 15',
+        highlighter:'M4 18 L18 12 L30 19 L44 10 L58 17 L70 12',
+        calligraphy:'M4 20 Q18 2 30 18 T70 10',
+        nastaliq:'M4 22 C14 2 24 27 35 12 S55 4 70 18',
+        tahriri:'M4 18 Q16 8 28 17 T52 16 T70 12',
+        titr:'M4 20 C18 1 26 27 40 13 S58 6 70 17',
+        oblique:'M4 22 L18 7 L29 20 L43 5 L55 18 L70 6',
+        eraser:'M4 18 L18 18 M25 18 L38 18 M45 18 L70 18'
+    };
+    container.innerHTML = '';
+    penSampleOptions.forEach(option => {
+        const sample = document.createElement('button');
+        sample.type = 'button';
+        sample.className = 'pen-sample' + ($('tool').value === option.value ? ' selected' : '');
+        sample.dataset.tool = option.value;
+        sample.title = option.label;
+        sample.setAttribute('aria-label', 'انتخاب ' + option.label);
+        sample.innerHTML = '<span class="pen-sample-name"></span><svg viewBox="0 0 74 28" aria-hidden="true"><path d="' + shapes[option.value] + '"/></svg>';
+        sample.querySelector('.pen-sample-name').textContent = option.label;
+        sample.style.setProperty('--sample-color', $('color').value);
+        sample.addEventListener('click', () => {
+            $('tool').value = option.value;
+            $('tool').dispatchEvent(new Event('change', {bubbles:true}));
+            renderPenSamples();
+        });
+        container.appendChild(sample);
+    });
+}
+$('addFavoriteColor').addEventListener('click', () => {
+    const chosen = $('favoriteColorPicker').value.toLowerCase();
+    if(!favoriteColors.some(color => color.toLowerCase() === chosen)) {
+        favoriteColors.push(chosen);
+        saveFavoriteColors();
+        renderFavoriteColors();
+    }
+    $('color').value = chosen;
+    renderFavoriteColors();
+});
+$('color').addEventListener('input', () => {
+    renderFavoriteColors();
+    renderPenSamples();
+});
+$('paletteThickness').value = $('thickness').value;
+$('paletteThicknessValue').textContent = $('thickness').value;
+$('paletteThickness').addEventListener('input', () => {
+    $('thickness').value = $('paletteThickness').value;
+    $('thicknessValue').textContent = $('paletteThickness').value;
+});
+$('thickness').addEventListener('input', () => {
+    $('paletteThickness').value = $('thickness').value;
+    $('paletteThicknessValue').textContent = $('thickness').value;
+});
+$('paletteUndo').addEventListener('click', () => $('undo').click());
+$('savePageImage').addEventListener('click', () => {
+    if(drawing) {
+        $('status').textContent = 'ابتدا نوشتن را تمام کنید و دوباره ذخیره را بزنید';
+        return;
+    }
+    const currentTopic = topic();
+    const currentPage = page();
+    if(!currentTopic || !currentPage) return;
+
+    try {
+        const link = document.createElement('a');
+        const safeName = value => String(value || '')
+            .replace(/[\\\\/:*?"<>|]/g, '-')
+            .replace(/\\s+/g, '_')
+            .slice(0, 60);
+        link.download = safeName(currentTopic.name || 'موضوع') + '_' +
+            safeName(currentPage.name || 'صفحه') + '.png';
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        $('status').textContent = '✓ تصویر صفحه با فرمت PNG ذخیره شد';
+    } catch(error) {
+        $('status').textContent = 'ذخیره تصویر انجام نشد';
+    }
+});
+$('tool').addEventListener('change', () => {
+    renderPenSamples();
+    if($('tool').value !== 'eraser') largeEraser.classList.remove('active');
+});
+renderFavoriteColors();
+renderPenSamples();
+
+
+
+const KEY = 'notebook_topics_v3';
+
+let data;
+
+try {
+    data = JSON.parse(localStorage.getItem(KEY) || 'null');
+} catch(e) {
+    data = null;
+}
+
+data = data || {
+    topics: [{
+        id: 1,
+        name: 'یادداشت‌های من',
+        pinned: true,
+        pages: [{
+            id: 11,
+            name: 'صفحه ۱',
+            width: 29.7,
+            height: 21,
+            strokes: []
+        }]
+    }],
+    activeTopic: 1,
+    activePage: 11
+};
+
+let drawing = false;
+let activeStroke = null;
+
+const canvas = $('canvas');
+const paper = $('paper');
+const paperArea = $('paperArea');
+
+const ctx = canvas.getContext('2d');
+
+let displayWidth = 0;
+let displayHeight = 0;
+let pixelRatio = 1;
+let zoomLevel = 1;
+
+const topic = () =>
+    data.topics.find(t => t.id === data.activeTopic);
+
+const page = () =>
+    topic()?.pages.find(p => p.id === data.activePage);
+
+/* ذخیره اطلاعات */
+
+function save() {
+    try {
+        localStorage.setItem(KEY, JSON.stringify(data));
+        $('status').textContent = '✓ ذخیره شد';
+    } catch(e) {
+        $('status').textContent =
+            'فضای ذخیره‌سازی مرورگر کافی نیست';
+    }
+}
+
+/* ساخت فایل ZIP شامل پوشه موضوع و تمام صفحه‌های آن */
+function makeTopicZip(folderName, files) {
+    const encoder = new TextEncoder();
+    const crcTable = new Uint32Array(256);
+    for(let n = 0; n < 256; n++) {
+        let c = n;
+        for(let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+        crcTable[n] = c >>> 0;
+    }
+    const crc32 = bytes => {
+        let c = 0xffffffff;
+        for(const b of bytes) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+        return (c ^ 0xffffffff) >>> 0;
+    };
+    const parts = [];
+    const central = [];
+    let offset = 0;
+    const allFiles = [{name:folderName + '/', data:new Uint8Array(0)}, ...files];
+
+    allFiles.forEach(file => {
+        const nameBytes = encoder.encode(file.name);
+        const dataBytes = typeof file.data === 'string' ? encoder.encode(file.data) : file.data;
+        const crc = crc32(dataBytes);
+        const local = new Uint8Array(30 + nameBytes.length + dataBytes.length);
+        const lv = new DataView(local.buffer);
+        lv.setUint32(0, 0x04034b50, true);
+        lv.setUint16(4, 20, true);
+        lv.setUint16(6, 0x0800, true);
+        lv.setUint16(8, 0, true);
+        lv.setUint32(14, crc, true);
+        lv.setUint32(18, dataBytes.length, true);
+        lv.setUint32(22, dataBytes.length, true);
+        lv.setUint16(26, nameBytes.length, true);
+        local.set(nameBytes, 30);
+        local.set(dataBytes, 30 + nameBytes.length);
+        parts.push(local);
+
+        const dir = new Uint8Array(46 + nameBytes.length);
+        const dv = new DataView(dir.buffer);
+        dv.setUint32(0, 0x02014b50, true);
+        dv.setUint16(4, 20, true);
+        dv.setUint16(6, 20, true);
+        dv.setUint16(8, 0x0800, true);
+        dv.setUint16(10, 0, true);
+        dv.setUint32(16, crc, true);
+        dv.setUint32(20, dataBytes.length, true);
+        dv.setUint32(24, dataBytes.length, true);
+        dv.setUint16(28, nameBytes.length, true);
+        dv.setUint32(38, file.name.endsWith('/') ? 0x10 : 0, true);
+        dv.setUint32(42, offset, true);
+        dir.set(nameBytes, 46);
+        central.push(dir);
+        offset += local.length;
+    });
+
+    const centralSize = central.reduce((sum, item) => sum + item.length, 0);
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(8, allFiles.length, true);
+    ev.setUint16(10, allFiles.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end], {type:'application/zip'});
+}
+
+$('saveTopic').onclick = () => {
+    const selectedTopic = topic();
+    if(!selectedTopic) return;
+
+    const requestedName = prompt('نام پوشه برای ذخیره موضوع و صفحات آن را وارد کنید:', selectedTopic.name || 'موضوع من');
+    if(requestedName === null) return;
+    const folderName = requestedName.trim().replace(/[\\/:*?"<>|]/g, '_').replace(/^\\.+|\\.+$/g, '') || 'موضوع من';
+
+    try {
+        const files = [{
+            name: folderName + '/اطلاعات موضوع.json',
+            data: JSON.stringify({
+                format:'notebook-topic',
+                version:1,
+                exportedAt:new Date().toISOString(),
+                topic:selectedTopic
+            }, null, 2)
+        }];
+
+        selectedTopic.pages.forEach((pageData, index) => {
+            const pageName = (pageData.name || ('صفحه ' + (index + 1)))
+                .replace(/[\\/:*?"<>|]/g, '_').trim() || ('صفحه ' + (index + 1));
+            files.push({
+                name: folderName + '/' + String(index + 1).padStart(2, '0') + ' - ' + pageName + '.png',
+                data: pageImageBytes(createPageImage(pageData))
+            });
+        });
+
+        const blob = makeTopicZip(folderName, files);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = folderName + '.zip';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        $('status').textContent = '✓ پوشه موضوع و ' + selectedTopic.pages.length + ' صفحه آماده دانلود شد';
+    } catch(error) {
+        $('status').textContent = 'ذخیره موضوع انجام نشد';
+    }
+};
+
+/* نمایش موضوعات و صفحات */
+
+function render() {
+    $('topics').innerHTML = '';
+    $('pinnedTabs').innerHTML = '';
+    $('pageTabs').innerHTML = '';
+
+    data.topics.forEach(t => {
+
+        const row = document.createElement('div');
+
+        row.className = 'topic' +
+            (t.id === data.activeTopic ? ' active' : '');
+
+        const name = document.createElement('button');
+
+        name.className = 'topic-name';
+        name.textContent = t.name;
+        name.onclick = () => selectTopic(t.id);
+
+        const pin = document.createElement('button');
+
+        pin.className = 'pin' + (t.pinned ? ' pinned' : '');
+        pin.textContent = t.pinned ? '★' : '☆';
+
+        pin.onclick = () => {
+            t.pinned = !t.pinned;
+            save();
+            render();
+        };
+
+        const del = document.createElement('button');
+
+        del.className = 'pin';
+        del.textContent = '×';
+        del.title = 'حذف موضوع';
+        del.onclick = () => deleteTopic(t.id);
+
+        row.append(name, pin, del);
+        $('topics').appendChild(row);
+
+        if(t.pinned) {
+            const tab = document.createElement('button');
+
+            tab.className = 'tab' +
+                (t.id === data.activeTopic ? ' active' : '');
+
+            tab.textContent = '★ ' + t.name;
+            tab.onclick = () => selectTopic(t.id);
+
+            $('pinnedTabs').appendChild(tab);
+        }
+    });
+
+    if(!$('pinnedTabs').children.length) {
+        $('pinnedTabs').innerHTML =
+            '<span class="small">هنوز موضوعی پین نشده است.</span>';
+    }
+
+    const t = topic();
+
+    if(t) {
+        t.pages.forEach(p => {
+            const tab = document.createElement('button');
+
+            tab.className = 'tab' +
+                (p.id === data.activePage ? ' active' : '');
+
+            tab.textContent = p.name;
+            tab.onclick = () => selectPage(p.id);
+
+            $('pageTabs').appendChild(tab);
+        });
+
+        $('activeName').textContent = 'موضوع: ' + t.name;
+    }
+
+    renderPaper();
+}
+
+/* انتخاب موضوع */
+
+function selectTopic(id) {
+    data.activeTopic = id;
+    data.activePage = topic().pages[0].id;
+
+    render();
+    save();
+}
+
+/* انتخاب صفحه */
+
+function selectPage(id) {
+    data.activePage = id;
+    render();
+    save();
+}
+
+/* ایجاد موضوع */
+
+function addTopic() {
+    const name = $('topicNameInput').value.trim();
+    if(!name) {
+        alert('لطفاً نام موضوع را تایپ کنید.');
+        $('topicNameInput').focus();
+        return;
+    }
+
+    const id = Date.now();
+
+    data.topics.push({
+        id,
+        name,
+        pinned: false,
+        pages: [{
+            id: id + 1,
+            name: 'صفحه ۱',
+            width: 29.7,
+            height: 21,
+            strokes: []
+        }]
+    });
+
+    data.activeTopic = id;
+    data.activePage = id + 1;
+    $('topicNameInput').value = '';
+    render();
+    save();
+}
+
+/* حذف موضوع */
+
+function deleteTopic(id) {
+    if(data.topics.length === 1) {
+        alert('حداقل یک موضوع باید باقی بماند.');
+        return;
+    }
+
+    const t = data.topics.find(x => x.id === id);
+
+    if(!confirm('موضوع «' + t.name +
+        '» و صفحه‌های آن حذف شود؟')) return;
+
+    data.topics = data.topics.filter(x => x.id !== id);
+
+    if(data.activeTopic === id) {
+        data.activeTopic = data.topics[0].id;
+        data.activePage = topic().pages[0].id;
+    }
+
+    render();
+    save();
+}
+
+/* صفحه جدید */
+
+function newPage() {
+    const t = topic();
+    const id = Date.now();
+
+    t.pages.push({
+        id,
+        name: 'صفحه ' + (t.pages.length + 1),
+        width: 29.7,
+        height: 21,
+        strokes: []
+    });
+
+    data.activePage = id;
+
+    render();
+    save();
+}
+
+/* محاسبه اندازه کاغذ و نمایش متناسب با محیط */
+
+function renderPaper() {
+    const p = page();
+    if(!p) return;
+
+    $('paperWidth').value = p.width;
+    $('paperHeight').value = p.height;
+
+    // نسبت واقعی ابعاد کاغذ
+    const physicalWidth = p.width / 2.54 * 96;
+    const physicalHeight = p.height / 2.54 * 96;
+
+    // فضای در دسترس
+    const availableWidth = Math.max(
+        100,
+        paperArea.clientWidth - 10
+    );
+
+    const availableHeight = Math.max(
+        100,
+        paperArea.clientHeight - 10
+    );
+
+    // بزرگ‌نمایی متناسب با فضای موجود
+    const scale = Math.min(
+        availableWidth / physicalWidth,
+        availableHeight / physicalHeight
+    );
+
+    displayWidth = physicalWidth * scale * zoomLevel;
+    displayHeight = physicalHeight * scale * zoomLevel;
+
+    paper.style.width = displayWidth + 'px';
+    paper.style.height = displayHeight + 'px';
+
+    pixelRatio = window.devicePixelRatio || 1;
+
+    canvas.style.width = displayWidth + 'px';
+    canvas.style.height = displayHeight + 'px';
+
+    canvas.width = Math.round(displayWidth * pixelRatio);
+    canvas.height = Math.round(displayHeight * pixelRatio);
+
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    redraw();
+}
+
+/* رسم خطوط */
+
+function drawStrokeToContext(target, stroke, width, height) {
+    if(!stroke.points || !stroke.points.length) return;
+    const pts = stroke.points;
+    const tool = stroke.tool;
+    let mult = 1, alpha = 1, cap = 'round', join = 'round', dash = [];
+    switch(tool) {
+        case 'ballpoint': mult=.72; alpha=.95; break;
+        case 'fine': mult=.42; alpha=.92; break;
+        case 'fountain': mult=1.15; break;
+        case 'pencil': mult=.78; alpha=.48; dash=[1.4,1.1]; break;
+        case 'brush': mult=2.15; alpha=.9; break;
+        case 'marker': mult=2.35; alpha=.68; cap='square'; join='bevel'; break;
+        case 'highlighter': mult=4.2; alpha=.22; cap='square'; join='bevel'; break;
+        case 'calligraphy': mult=2.1; alpha=.96; cap='square'; break;
+        case 'nastaliq': mult=1.55; alpha=.98; break;
+        case 'tahriri': mult=.92; alpha=.97; break;
+        case 'titr': mult=2.45; alpha=.94; break;
+        case 'oblique': mult=2.7; alpha=.98; cap='butt'; join='bevel'; break;
+        case 'eraser': mult=3; break;
+    }
+    target.save();
+    target.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
+    target.globalAlpha = alpha;
+    target.strokeStyle = stroke.color;
+    target.fillStyle = stroke.color;
+    target.lineCap = cap;
+    target.lineJoin = join;
+    target.setLineDash(dash);
+    if(tool === 'oblique') {
+        // زاویه نوک در هر نقطه از چرخش قلم نوری یا زاویه دستی خوانده می‌شود.
+        const left = [], right = [];
+        for(let i=0;i<pts.length;i++) {
+            const p = pts[i];
+            const pressure = stroke.usePressure ? Math.max(.15,p.pressure||.5) : 1;
+            const halfWidth = Math.max(.45, stroke.size * mult * pressure) / 2;
+            const nibAngle = Number.isFinite(p.nibAngle) ? p.nibAngle : Math.PI / 2;
+            const nx = -Math.sin(nibAngle), ny = Math.cos(nibAngle);
+            const x = p.x * width, y = p.y * height;
+            left.push([x - nx*halfWidth, y - ny*halfWidth]);
+            right.push([x + nx*halfWidth, y + ny*halfWidth]);
+        }
+        target.beginPath();
+        target.moveTo(left[0][0], left[0][1]);
+        for(let i=1;i<left.length;i++) target.lineTo(left[i][0],left[i][1]);
+        for(let i=right.length-1;i>=0;i--) target.lineTo(right[i][0],right[i][1]);
+        target.closePath();
+        target.fill();
+    } else if(pts.length === 1) {
+        const p=pts[0], pressure=stroke.usePressure ? Math.max(.15,p.pressure||.5) : 1;
+        target.beginPath();
+        target.arc(p.x*width,p.y*height,stroke.size*mult*pressure/2,0,Math.PI*2);
+        target.fill();
+    } else {
+        for(let i=1;i<pts.length;i++) {
+            const a=pts[i-1], b=pts[i];
+            const dx=(b.x-a.x)*width, dy=(b.y-a.y)*height;
+            const distance=Math.hypot(dx,dy);
+            const angle=Math.atan2(dy,dx);
+            const pressure=stroke.usePressure ? Math.max(.15,((a.pressure||.5)+(b.pressure||.5))/2) : 1;
+            let factor=1;
+            if(tool==='calligraphy') factor=.28+.92*Math.abs(Math.sin(angle));
+            else if(tool==='fountain') factor=.72+pressure*.48;
+            else if(tool==='brush') factor=.82+pressure*.38;
+            else if(tool==='nastaliq') {
+                const taper=Math.min(1,(i/Math.max(1,pts.length-1))*5,((pts.length-i)/Math.max(1,pts.length-1))*5);
+                factor=(.42+.92*Math.abs(Math.sin(angle)))*(.62+.38*Math.max(.18,taper));
+            } else if(tool==='tahriri') {
+                const speedFactor=Math.max(.78,Math.min(1.12,1.08-distance/32));
+                factor=(.88+pressure*.18)*speedFactor;
+            } else if(tool==='titr') factor=.92+pressure*.28;
+            target.beginPath();
+            target.lineWidth=Math.max(.45,stroke.size*mult*pressure*factor);
+            target.moveTo(a.x*width,a.y*height);
+            target.lineTo(b.x*width,b.y*height);
+            target.stroke();
+        }
+    }
+    target.restore();
+}
+
+function drawStroke(s) {
+    drawStrokeToContext(ctx, s, displayWidth, displayHeight);
+}
+
+/* بازسازی صفحه */
+
+function redraw() {
+    if(!displayWidth || !displayHeight) return;
+
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    ctx.clearRect(0, 0, displayWidth, displayHeight);
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, displayWidth, displayHeight);
+
+    const p = page();
+
+    if(!p) return;
+
+    p.strokes.forEach(s => drawStroke(s));
+}
+
+/* کنترل زاویه قلم سرکج */
+function updateObliqueAngleControl() {
+    const control = $('obliqueAngleControl');
+    if(control) control.classList.toggle('visible', $('tool').value === 'oblique');
+}
+$('tool').addEventListener('change', updateObliqueAngleControl);
+$('obliqueAngle').addEventListener('input', () => {
+    $('obliqueAngleValue').textContent = $('obliqueAngle').value + '°';
+});
+updateObliqueAngleControl();
+
+/* دریافت مختصات قلم */
+
+function getPoint(e) {
+    const r = canvas.getBoundingClientRect();
+    const baseAngle = Number($('obliqueAngle')?.value || 90);
+    // PointerEvent.twist زاویه چرخش بدنه قلم نوری است؛ اسلایدر زاویه پایه/جایگزین را تعیین می‌کند.
+    const penTwist = e.pointerType === 'pen' && Number.isFinite(e.twist) ? e.twist : 0;
+
+    return {
+        x: (e.clientX - r.left) / r.width,
+        y: (e.clientY - r.top) / r.height,
+        pressure: e.pointerType === 'pen'
+            ? (e.pressure > 0 ? e.pressure : .5)
+            : 1,
+        nibAngle: ((baseAngle + penTwist) % 360) * Math.PI / 180
+    };
+}
+
+/* شروع نوشتن */
+
+function begin(e) {
+
+    // قلم نوری، ماوس و لمس اجازه نوشتن دارند
+    e.preventDefault();
+
+    drawing = true;
+
+    try {
+        canvas.setPointerCapture(e.pointerId);
+    } catch(error) {}
+
+    const p = getPoint(e);
+
+    const tool = $('tool').value;
+
+    activeStroke = {
+        tool,
+        color: $('color').value,
+        size: Number($('thickness').value),
+        usePressure: tool !== 'eraser',
+        points: [p]
+    };
+
+    page().strokes.push(activeStroke);
+
+    redraw();
+}
+
+/* حرکت قلم */
+
+function move(e) {
+    if(!drawing || !activeStroke) return;
+
+    e.preventDefault();
+
+    const events = typeof e.getCoalescedEvents === 'function'
+        ? e.getCoalescedEvents()
+        : [e];
+
+    events.forEach(pointerEvent => {
+        activeStroke.points.push(getPoint(pointerEvent));
+    });
+
+    redraw();
+}
+
+/* پایان نوشتن */
+
+function end(e) {
+    if(!drawing) return;
+
+    drawing = false;
+    activeStroke = null;
+
+    save();
+}
+
+/* رویدادهای قلم */
+
+canvas.addEventListener('pointerdown', begin);
+canvas.addEventListener('pointermove', move);
+canvas.addEventListener('pointerup', end);
+canvas.addEventListener('pointercancel', end);
+canvas.addEventListener('lostpointercapture', end);
+
+canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+});
+
+/* تولید تصویر PNG هر صفحه برای خروجی موضوع */
+function createPageImage(pageData) {
+    const width = 1800;
+    const height = Math.max(1, Math.round(width * pageData.height / pageData.width));
+    const imageCanvas = document.createElement('canvas');
+    imageCanvas.width = width;
+    imageCanvas.height = height;
+    const imageCtx = imageCanvas.getContext('2d');
+    imageCtx.fillStyle = '#fff';
+    imageCtx.fillRect(0, 0, width, height);
+    pageData.strokes.forEach(stroke => drawStrokeToContext(imageCtx, stroke, width, height));
+    return imageCanvas.toDataURL('image/png');
+}
+function pageImageBytes(dataUrl) {
+    const binary = atob(dataUrl.split(',')[1]);
+    const bytes = new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+    return bytes;
+}
+
+/* ابزارها */
+
+$('addTopic').onclick = addTopic;
+$('newPage').onclick = newPage;
+
+/* حالت تمام‌صفحه محیط نوشتن */
+const appElement = document.querySelector('.app');
+const fullscreenToggle = $('fullscreenToggle');
+
+let topAreaOriginalPositions;
+function setWritingFullscreen(enabled) {
+    if(enabled) {
+        const topArea = document.querySelector('.top-area');
+        topArea.appendChild($('newPage'));
+        const pageLabel = topArea.querySelector('.strip-label:nth-of-type(2)');
+        if(pageLabel) topArea.appendChild(pageLabel);
+        topArea.appendChild($('pageTabs'));
+    } else {
+        topAreaOriginalPositions.forEach(item => {
+            if(item.node && item.parent) item.parent.insertBefore(item.node, item.nextSibling && item.nextSibling.parentElement === item.parent ? item.nextSibling : null);
+        });
+    }
+    appElement.classList.toggle('writing-fullscreen', enabled);
+    if(typeof floatingControls !== 'undefined') {
+        if(enabled) {
+            ['tool','color','undo','clear'].forEach(id => {
+                const node = $(id);
+                if(node && node.parentElement !== floatingControls) floatingControls.appendChild(node);
+            });
+        } else if(typeof originalControlPositions !== 'undefined') {
+            originalControlPositions.forEach(item => {
+                if(item.node && item.parent && item.node.parentElement !== item.parent) {
+                    item.parent.insertBefore(item.node, item.nextSibling && item.nextSibling.parentElement === item.parent ? item.nextSibling : null);
+                }
+            });
+        }
+    }
+    fullscreenToggle.textContent = enabled ? '⛶ خروج از تمام‌صفحه' : '⛶ تمام‌صفحه';
+    fullscreenToggle.title = enabled ? 'خروج از حالت تمام‌صفحه' : 'نمایش تمام‌صفحه';
+    requestAnimationFrame(renderPaper);
+}
+
+async function toggleWritingFullscreen() {
+    const entering = !appElement.classList.contains('writing-fullscreen');
+
+    if(!entering) {
+        setWritingFullscreen(false);
+        if(document.fullscreenElement && document.exitFullscreen) {
+            try { await document.exitFullscreen(); } catch(error) {}
+        }
+        return;
+    }
+
+    // ابتدا حالت تمام‌صفحه داخلی را فعال می‌کنیم تا حتی در محیط‌هایی
+    // که Fullscreen API را محدود کرده‌اند، فضای نوشتن بزرگ شود.
+    setWritingFullscreen(true);
+
+    if(!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        try {
+            await document.documentElement.requestFullscreen();
+        } catch(error) {
+            // حالت تمام‌صفحه داخلی همچنان فعال می‌ماند.
+        }
+    }
+}
+
+fullscreenToggle.onclick = toggleWritingFullscreen;
+$('fullscreenExit').onclick = () => {
+    setWritingFullscreen(false);
+    if(document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+    }
+};
+
+document.addEventListener('fullscreenchange', () => {
+    if(!document.fullscreenElement && appElement.classList.contains('writing-fullscreen')) {
+        setWritingFullscreen(false);
+    }
+});
+
+$('toggle').onclick = () => {
+    $('sidebar').classList.toggle('closed');
+
+    setTimeout(renderPaper, 220);
+};
+
+$('thickness').oninput = e => {
+    $('thicknessValue').textContent = e.target.value;
+};
+
+function setZoom(value) {
+    zoomLevel = Math.min(4, Math.max(0.25, value));
+    $('zoomValue').textContent = Math.round(zoomLevel * 100) + '٪';
+    renderPaper();
+}
+$('zoomIn').onclick = () => setZoom(zoomLevel + 0.1);
+$('zoomOut').onclick = () => setZoom(zoomLevel - 0.1);
+$('zoomFit').onclick = () => setZoom(1);
+
+/* بازگشت */
+
+$('undo').onclick = () => {
+    if(drawing) return;
+
+    const strokes = page().strokes;
+
+    strokes.pop();
+
+    redraw();
+    save();
+};
+
+/* پاک کردن صفحه */
+
+$('clear').onclick = () => {
+    if(!confirm('تمام نوشته‌های این صفحه پاک شود؟')) return;
+
+    page().strokes = [];
+
+    redraw();
+    save();
+};
+
+/* تغییر اندازه کاغذ */
+
+$('applySize').onclick = () => {
+    const w = Number($('paperWidth').value);
+    const h = Number($('paperHeight').value);
+
+    if(!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+        alert('عرض و ارتفاع باید عددی بزرگ‌تر از صفر باشند.');
+        return;
+    }
+
+    page().width = w;
+    page().height = h;
+
+    renderPaper();
+    save();
+};
+
+/* تنظیم مجدد اندازه با تغییر پنجره */
+
+const resizeObserver = new ResizeObserver(() => {
+    renderPaper();
+});
+
+resizeObserver.observe(paperArea);
+window.addEventListener('resize', () => {
+    renderPaper();
+});
+
+/* ذخیره خودکار */
+
+// ذخیره دوره‌ای؛ حتی اگر هنگام خروج، قلم هنوز در حال نوشتن باشد
+setInterval(save, 1000);
+
+// ذخیره در زمان ترک صفحه، بستن پنجره یا رفتن برنامه به پس‌زمینه
+window.addEventListener('beforeunload', save);
+window.addEventListener('pagehide', save);
+window.addEventListener('blur', save);
+
+document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'hidden') save();
+});
+
+/* انتقال کنترل‌های پرکاربرد به نوار شناور قابل جابه‌جایی با قلم یا لمس */
+const originalControlPositions = ['newPage','tool','color','undo','clear'].map(id => {
+    const node = $(id);
+    return {node, parent:node ? node.parentElement : null, nextSibling:node ? node.nextSibling : null};
+});
+topAreaOriginalPositions = [
+    {
+        node:$('newPage'),
+        parent:originalControlPositions.find(item => item.node && item.node.id === 'newPage').parent,
+        nextSibling:originalControlPositions.find(item => item.node && item.node.id === 'newPage').nextSibling
+    },
+    {
+        node:$('pageTabs'),
+        parent:$('pageTabs').parentElement,
+        nextSibling:$('pageTabs').nextSibling
+    }
+];
+const floatingControls = document.createElement('div');
+floatingControls.className = 'floating-controls';
+floatingControls.id = 'floatingControls';
+const largeEraser = document.createElement('button');
+largeEraser.type = 'button';
+largeEraser.id = 'largeEraser';
+largeEraser.textContent = '🧽 پاک‌کن بزرگ';
+largeEraser.title = 'فعال‌کردن پاک‌کن با بیشترین قطر';
+largeEraser.addEventListener('click', () => {
+    $('tool').value = 'eraser';
+    $('thickness').value = '100';
+    $('thicknessValue').textContent = '100';
+    $('tool').dispatchEvent(new Event('change', {bubbles:true}));
+    largeEraser.classList.add('active');
+});
+const dragHandle = document.createElement('div');
+dragHandle.className = 'drag-handle';
+dragHandle.textContent = '⠿';
+dragHandle.title = 'برای جابه‌جایی، این دستگیره را با قلم بکشید';
+floatingControls.appendChild(dragHandle);
+floatingControls.appendChild(largeEraser);
+['tool','color','undo','clear'].forEach(id => {
+    const node = $(id);
+    if(node) floatingControls.appendChild(node);
+});
+document.body.appendChild(floatingControls);
+// در حالت عادی، کنترل‌ها در جای اصلی خود باقی می‌مانند.
+originalControlPositions.forEach(item => {
+    if(item.node && item.parent) item.parent.insertBefore(item.node, item.nextSibling && item.nextSibling.parentElement === item.parent ? item.nextSibling : null);
+});
+
+let dockDragging = false;
+let dockPointerId = null;
+let dockOffsetX = 0;
+let dockOffsetY = 0;
+dragHandle.addEventListener('pointerdown', e => {
+    if(!appElement.classList.contains('writing-fullscreen')) return;
+    e.preventDefault();
+    dockDragging = true;
+    dockPointerId = e.pointerId;
+    const rect = floatingControls.getBoundingClientRect();
+    dockOffsetX = e.clientX - rect.left;
+    dockOffsetY = e.clientY - rect.top;
+    floatingControls.style.left = rect.left + 'px';
+    floatingControls.style.top = rect.top + 'px';
+    floatingControls.style.transform = 'none';
+    dragHandle.setPointerCapture(e.pointerId);
+});
+dragHandle.addEventListener('pointermove', e => {
+    if(!dockDragging || e.pointerId !== dockPointerId) return;
+    e.preventDefault();
+    const maxLeft = Math.max(0, window.innerWidth - floatingControls.offsetWidth);
+    const maxTop = Math.max(0, window.innerHeight - floatingControls.offsetHeight);
+    floatingControls.style.left = Math.min(maxLeft, Math.max(0, e.clientX - dockOffsetX)) + 'px';
+    floatingControls.style.top = Math.min(maxTop, Math.max(0, e.clientY - dockOffsetY)) + 'px';
+});
+function stopDockDrag() { dockDragging = false; dockPointerId = null; }
+dragHandle.addEventListener('pointerup', stopDockDrag);
+dragHandle.addEventListener('pointercancel', stopDockDrag);
+
+/* شروع برنامه */
+
+render();
+// برنامه در شروع عادی باز می‌شود؛ تمام‌صفحه فقط با دکمه کاربر فعال می‌شود.
+
+</script>
+</body>
+</html>
